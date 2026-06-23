@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CitaSegura — Menos ausencias, agenda llena</title>
+<style>
+  :root{
+    --bg:#f4f6fb; --panel:#ffffff; --ink:#0f2540; --ink2:#475569; --muted:#7c8ba1;
+    --line:#e3e8f2; --line2:#eef2f9;
+    --primary:#0d5bd4; --primary2:#0a49ab; --primarybg:#e8f0fe;
+    --teal:#0f9b8e; --tealbg:#e2f6f3;
+    --amber:#c77700; --amberbg:#fdf3e2; --red:#d23b3b; --redbg:#fbe9e9;
+    --green:#1f9d57; --greenbg:#e6f6ec;
+    --radius:14px; --shadow:0 6px 20px rgba(15,37,64,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit}
+  svg{display:block}
+  .app{display:flex;min-height:100vh}
+  /* SIDEBAR */
+  .sidebar{width:248px;background:var(--panel);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;padding:18px 14px;position:sticky;top:0;height:100vh}
+  .brand{display:flex;align-items:center;gap:11px;padding:6px 8px 20px}
+  .brand .logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--primary),#1786d8);
+    display:flex;align-items:center;justify-content:center;color:#fff}
+  .brand .logo svg{width:21px;height:21px;stroke:#fff;fill:none;stroke-width:2.2}
+  .brand b{font-size:18px;letter-spacing:-.3px;display:block}
+  .brand small{font-size:10.5px;color:var(--muted);letter-spacing:.3px;text-transform:uppercase;font-weight:600}
+  .nav{display:flex;flex-direction:column;gap:3px;margin-top:4px}
+  .nav button{display:flex;align-items:center;gap:11px;background:none;border:none;color:var(--ink2);
+    padding:11px 12px;border-radius:10px;font-size:14.5px;font-weight:600;text-align:left;width:100%}
+  .nav button:hover{background:var(--line2)}
+  .nav button.active{background:var(--primarybg);color:var(--primary)}
+  .nav button svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
+  .nav .badge{margin-left:auto;background:var(--red);color:#fff;font-size:11px;font-weight:800;
+    min-width:20px;height:20px;border-radius:99px;display:flex;align-items:center;justify-content:center;padding:0 5px}
+  .nav .badge.teal{background:var(--teal)}
+  .plan-badge{margin-top:auto;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:13px}
+  .plan-badge .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700}
+  .plan-badge .pname{font-weight:800;font-size:16px;margin:2px 0 9px;display:flex;align-items:center;gap:6px}
+  .plan-badge .pname .tag{background:linear-gradient(135deg,var(--primary),#1786d8);color:#fff;font-size:10px;padding:2px 8px;border-radius:99px}
+  .plan-badge .bar{height:6px;background:var(--line);border-radius:99px;overflow:hidden}
+  .plan-badge .bar i{display:block;height:100%;background:var(--primary);transition:width .4s}
+  .plan-badge small{display:block;color:var(--muted);margin-top:7px;font-size:11.5px}
+  .plan-badge button{margin-top:11px;width:100%;background:var(--primary);color:#fff;border:none;
+    padding:9px;border-radius:9px;font-weight:800;font-size:13px}
+  .plan-badge button:hover{background:var(--primary2)}
+  /* MAIN */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;
+    border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(255,255,255,.9);
+    backdrop-filter:blur(8px);z-index:20}
+  .topbar h1{font-size:20px;letter-spacing:-.4px}
+  .topbar .sub{color:var(--muted);font-size:13px;margin-top:1px}
+  .topbar-actions{display:flex;gap:10px;align-items:center}
+  .content{padding:24px 28px 90px;max-width:1120px;width:100%}
+  /* BUTTONS */
+  .btn{background:var(--primary);color:#fff;border:none;padding:10px 16px;border-radius:10px;
+    font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:7px}
+  .btn:hover{background:var(--primary2)}
+  .btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2}
+  .btn.ghost{background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+  .btn.ghost:hover{border-color:var(--muted);background:var(--line2)}
+  .btn.sm{padding:7px 12px;font-size:13px;border-radius:9px}
+  .btn.wa{background:#25D366;color:#063}
+  .btn.wa:hover{background:#1eb358}
+  .btn.teal{background:var(--teal)}.btn.teal:hover{background:#0c857a}
+  .btn.red{background:var(--red)}.btn.red:hover{background:#b62f2f}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  /* KPIs */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+  .kpi .k{font-size:12px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:7px}
+  .kpi .k svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+  .kpi .v{font-size:29px;font-weight:800;letter-spacing:-1px;margin-top:7px}
+  .kpi .d{font-size:12px;margin-top:3px;color:var(--muted)}
+  .kpi .d.good{color:var(--green)}.kpi .d.bad{color:var(--red)}
+  .kpi.accent{background:linear-gradient(135deg,#0d5bd4,#1786d8);border-color:transparent;color:#fff}
+  .kpi.accent .k,.kpi.accent .d{color:rgba(255,255,255,.85)}
+  /* CARDS */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:18px;box-shadow:var(--shadow)}
+  .card .head{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--line);gap:10px;flex-wrap:wrap}
+  .card .head h2{font-size:16px;letter-spacing:-.3px;display:flex;align-items:center;gap:8px}
+  .card .head h2 svg{width:17px;height:17px;stroke:var(--primary);fill:none;stroke-width:2}
+  .card .head .hint{font-size:12.5px;color:var(--muted);font-weight:500}
+  .card .body{padding:8px}
+  .empty{padding:42px 20px;text-align:center;color:var(--muted)}
+  .empty .ico{width:46px;height:46px;margin:0 auto 12px;color:var(--line);}
+  .empty .ico svg{width:46px;height:46px;stroke:currentColor;fill:none;stroke-width:1.5}
+  .empty b{color:var(--ink2);display:block;font-size:15px}
+  .empty .btn{margin-top:14px}
+  /* APPT ROW */
+  .appt{display:flex;align-items:center;gap:14px;padding:13px 14px;border-radius:11px}
+  .appt:hover{background:var(--line2)}
+  .appt .time{min-width:62px;text-align:center}
+  .appt .time .h{font-size:17px;font-weight:800}
+  .appt .time .day{font-size:11px;color:var(--muted)}
+  .appt .who{flex:1;min-width:0}
+  .appt .who b{font-size:14.5px}
+  .appt .who .svc{font-size:12.5px;color:var(--muted)}
+  .appt .who .ph{font-size:11.5px;color:var(--muted)}
+  .appt .acts{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+  .pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+  .pill.pend{background:var(--amberbg);color:var(--amber)}
+  .pill.sent{background:var(--primarybg);color:var(--primary)}
+  .pill.conf{background:var(--greenbg);color:var(--green)}
+  .pill.cancel{background:var(--redbg);color:var(--red)}
+  .pill.done{background:var(--tealbg);color:var(--teal)}
+  .pill.noshow{background:var(--redbg);color:var(--red)}
+  .pill.dot::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  /* STEPPER (flujo de la cita) */
+  .stepper{display:flex;align-items:center;gap:0;margin-top:7px}
+  .stepper .step{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);font-weight:600}
+  .stepper .step i{width:9px;height:9px;border-radius:50%;background:var(--line);border:2px solid var(--line);flex-shrink:0}
+  .stepper .step:not(:last-child)::after{content:"";width:18px;height:2px;background:var(--line);margin:0 6px}
+  .stepper .step.on{color:var(--primary)}
+  .stepper .step.on i{background:var(--primary);border-color:var(--primary)}
+  .stepper .step.on:not(:last-child)::after{background:var(--primary)}
+  .stepper.fail .step.on{color:var(--red)}
+  .stepper.fail .step.on i{background:var(--red);border-color:var(--red)}
+  .stepper.fail .step.on:not(:last-child)::after{background:var(--red)}
+  /* TABLE */
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);
+    padding:11px 14px;border-bottom:1px solid var(--line)}
+  td{padding:12px 14px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:var(--line2)}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--primarybg);
+    display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:var(--primary)}
+  /* MODAL */
+  .modal-bg{position:fixed;inset:0;background:rgba(15,37,64,.45);backdrop-filter:blur(3px);z-index:100;
+    display:none;align-items:center;justify-content:center;padding:20px}
+  .modal-bg.show{display:flex}
+  .modal{background:var(--panel);border-radius:18px;width:100%;max-width:470px;
+    box-shadow:0 20px 60px rgba(15,37,64,.3);max-height:92vh;overflow:auto}
+  .modal.wide{max-width:560px}
+  .modal .mhead{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .modal .mhead h3{font-size:18px}
+  .modal .mbody{padding:20px 22px}
+  .modal .mfoot{padding:16px 22px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}
+  .x{background:none;border:none;color:var(--muted);font-size:24px;line-height:1}
+  label{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin:14px 0 6px}
+  label:first-child{margin-top:0}
+  .field,input[type=text],input[type=tel],input[type=date],input[type=time],input[type=number],select,textarea{
+    width:100%;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:11px 13px;color:var(--ink);font-size:14.5px}
+  .field:focus,input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primarybg)}
+  textarea{resize:vertical;min-height:70px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .help{font-size:11.5px;color:var(--muted);margin-top:5px}
+  /* PAYWALL / PLANS */
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .plan{border:1.5px solid var(--line);border-radius:14px;padding:20px 18px;position:relative;display:flex;flex-direction:column}
+  .plan.pop{border-color:var(--primary);box-shadow:0 8px 24px rgba(13,91,212,.14)}
+  .plan .ribbon{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;
+    font-size:10.5px;font-weight:800;padding:3px 12px;border-radius:99px;text-transform:uppercase;letter-spacing:.5px}
+  .plan h4{font-size:16px}
+  .plan .price{font-size:30px;font-weight:800;letter-spacing:-1px;margin:8px 0 2px}
+  .plan .price small{font-size:13px;font-weight:600;color:var(--muted)}
+  .plan ul{list-style:none;margin:14px 0;display:flex;flex-direction:column;gap:9px;font-size:13px;color:var(--ink2);flex:1}
+  .plan ul li{display:flex;gap:8px;align-items:flex-start}
+  .plan ul li svg{width:15px;height:15px;stroke:var(--green);fill:none;stroke-width:2.5;flex-shrink:0;margin-top:2px}
+  .plan ul li.off{color:var(--muted)}
+  .plan ul li.off svg{stroke:var(--line)}
+  /* TOAST */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);
+    color:#fff;padding:13px 20px;border-radius:11px;font-size:14px;font-weight:600;z-index:200;opacity:0;
+    transition:.3s;box-shadow:0 10px 30px rgba(0,0,0,.25);display:flex;align-items:center;gap:9px;max-width:90vw}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .toast svg{width:18px;height:18px;stroke:#4ade80;fill:none;stroke-width:2.5;flex-shrink:0}
+  /* WAITLIST */
+  .wl{display:flex;align-items:center;gap:13px;padding:12px 14px;border-radius:11px}
+  .wl:hover{background:var(--line2)}
+  .wl .pos{width:26px;height:26px;border-radius:8px;background:var(--tealbg);color:var(--teal);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .wl .who{flex:1;min-width:0}.wl .who b{font-size:14px}.wl .who div{font-size:12px;color:var(--muted)}
+  /* BANNER */
+  .banner{background:linear-gradient(135deg,#fdf3e2,#fcecd1);border:1px solid #f0d9a8;border-radius:13px;
+    padding:14px 16px;margin-bottom:18px;display:flex;align-items:center;gap:13px}
+  .banner.teal{background:var(--tealbg);border-color:#bfe9e3}
+  .banner .ic{width:38px;height:38px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .banner .ic svg{width:20px;height:20px;stroke:var(--amber);fill:none;stroke-width:2}
+  .banner.teal .ic svg{stroke:var(--teal)}
+  .banner .tx{flex:1}.banner .tx b{font-size:14px}.banner .tx div{font-size:12.5px;color:var(--ink2)}
+  .banner .btn{flex-shrink:0}
+  /* STATS BARS */
+  .barrow{display:flex;align-items:center;gap:12px;padding:9px 14px}
+  .barrow .lab{width:90px;font-size:13px;color:var(--ink2);font-weight:600}
+  .barrow .track{flex:1;height:22px;background:var(--line2);border-radius:7px;overflow:hidden;position:relative}
+  .barrow .track i{display:block;height:100%;border-radius:7px;transition:width .5s}
+  .barrow .val{width:54px;text-align:right;font-size:13px;font-weight:700}
+  /* ONBOARDING */
+  .ob-bg{position:fixed;inset:0;background:linear-gradient(135deg,#0d2a52,#0d5bd4);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
+  .ob{background:var(--panel);border-radius:20px;max-width:480px;width:100%;padding:34px 30px;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+  .ob .logo{width:54px;height:54px;border-radius:15px;background:linear-gradient(135deg,var(--primary),#1786d8);display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+  .ob .logo svg{width:30px;height:30px;stroke:#fff;fill:none;stroke-width:2.2}
+  .ob h2{font-size:23px;letter-spacing:-.5px}
+  .ob p.lead{color:var(--ink2);font-size:14.5px;margin:8px 0 22px}
+  .ob .feat{display:flex;gap:11px;margin-bottom:13px;font-size:13.5px;color:var(--ink2)}
+  .ob .feat svg{width:19px;height:19px;stroke:var(--primary);fill:none;stroke-width:2;flex-shrink:0}
+  .seg{display:flex;background:var(--line2);border-radius:10px;padding:3px;gap:3px;margin-bottom:6px}
+  .seg button{flex:1;background:none;border:none;padding:8px;border-radius:8px;font-weight:600;font-size:13px;color:var(--ink2)}
+  .seg button.on{background:var(--panel);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  @media(max-width:820px){
+    .sidebar{display:none}.kpis{grid-template-columns:repeat(2,1fr);gap:10px}
+    .plans{grid-template-columns:1fr}.content{padding:16px 14px 96px}
+    .topbar{padding:13px 14px}.topbar h1{font-size:18px}.row2{grid-template-columns:1fr}
+    .mobnav{display:flex !important}
+    .kpi{padding:13px 14px}.kpi .v{font-size:24px}
+    .appt{flex-wrap:wrap;gap:10px;padding:12px}
+    .appt .who{flex-basis:calc(100% - 110px)}
+    .appt .acts{flex-basis:100%;justify-content:flex-start}
+    .card .head{padding:13px 14px}.card .head .hint{flex-basis:100%}
+    .topbar-actions .btn span{display:none}
+  }
+  @media(max-width:420px){ .kpis{grid-template-columns:1fr} }
+  /* MOBILE NAV */
+  .mobnav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line);
+    z-index:50;justify-content:space-around;padding:8px 0}
+  .mobnav button{background:none;border:none;color:var(--muted);font-size:10.5px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .mobnav button.active{color:var(--primary)}
+  .mobnav button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:2}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></div>
+      <div><b>CitaSegura</b><small>Anti no-show</small></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="plan-badge" id="planBadge"></div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div><h1 id="pgTitle">Hoy</h1><div class="sub" id="pgSub"></div></div>
+      <div class="topbar-actions" id="topActions"></div>
+    </div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+
+<nav class="mobnav" id="mobnav"></nav>
+
+<!-- MODAL HOST -->
+<div class="modal-bg" id="modalBg"><div class="modal" id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================================
+   CitaSegura — demo frontend-only. Datos en localStorage 'citasegura_v1'.
+   Núcleo: CONFIRMACIÓN (wa.me/sms pre-escrito) + LISTA DE ESPERA (rellena huecos)
+   + ANALÍTICA de no-shows y dinero recuperado. Muro de suscripción simulado.
+   ============================================================================ */
+const KEY='citasegura_v1';
+const FREE_LIMIT=15;            // confirmaciones/mes en Free
+const ICON={
+  today:'<path d="M3 9h18M7 3v4M17 3v4M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"/>',
+  wait:'<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4M16 11l2 2 4-4"/>',
+  stats:'<path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-6"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a7.96 7.96 0 000-6l2-1.2-2-3.4-2.3 1a8 8 0 00-2.1-1.2L14.5 1h-5l-.5 2.2a8 8 0 00-2.1 1.2l-2.3-1-2 3.4 2 1.2a7.96 7.96 0 000 6l-2 1.2 2 3.4 2.3-1a8 8 0 002.1 1.2L9.5 23h5l.5-2.2a8 8 0 002.1-1.2l2.3 1 2-3.4z"/>',
+  check:'<path d="M20 6L9 17l-5-5"/>',
+  send:'<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
+  wa:'<path d="M12 2a10 10 0 00-8.5 15.2L2 22l4.9-1.5A10 10 0 1012 2z"/>',
+  money:'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  warn:'<path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  import:'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+  flame:'<path d="M12 2s4 4 4 8a4 4 0 01-8 0c0-1 .5-2 1-3M12 22a6 6 0 006-6c0-4-3-6-3-9 0 0-3 2-3 6a3 3 0 01-3-3"/>',
+};
+function ic(n,cls=''){return `<svg viewBox="0 0 24 24" class="${cls}">${ICON[n]}</svg>`;}
+
+/* ---- Estado por defecto / seed ------------------------------------------- */
+function todayISO(off=0){const d=new Date();d.setDate(d.getDate()+off);return d.toISOString().slice(0,10);}
+function at(dayOff,hhmm){return `${todayISO(dayOff)}T${hhmm}:00`;}
+function curMonth(){return new Date().toISOString().slice(0,7);}
+
+function seed(){
+  return {
+    onboarded:false,
+    plan:'free',
+    usage:{month:curMonth(),count:0},
+    settings:{ business:'Clínica Dental Sonríe', sector:'dental', ticket:60,
+      depositOn:false, depositPct:30, depositUrl:'https://buy.stripe.com/test_xxxx' },
+    appts:[
+      {id:id(), name:'María López',  phone:'34611111111', service:'Limpieza dental', when:at(0,'10:00'), status:'pend',  notified:false},
+      {id:id(), name:'Carlos Ruiz',  phone:'34622222222', service:'Revisión',        when:at(0,'11:30'), status:'sent',  notified:true},
+      {id:id(), name:'Ana Gómez',    phone:'34633333333', service:'Empaste',         when:at(0,'12:30'), status:'conf',  notified:true},
+      {id:id(), name:'Jorge Pérez',  phone:'34644444444', service:'Ortodoncia',      when:at(1,'09:00'), status:'pend',  notified:false},
+      {id:id(), name:'Lucía Marín',  phone:'34655555555', service:'Blanqueamiento',  when:at(1,'17:00'), status:'sent',  notified:true},
+      // citas ya resueltas (dan un denominador realista a la tasa de no-show)
+      {id:id(), name:'Sofía Romero', phone:'34688888888', service:'Limpieza dental', when:at(-1,'10:00'), status:'done', notified:true},
+      {id:id(), name:'Iván Torres',  phone:'34699999999', service:'Revisión',        when:at(-1,'12:00'), status:'done', notified:true},
+      {id:id(), name:'Nora Blanco',  phone:'34601010101', service:'Empaste',         when:at(-2,'16:00'), status:'done', notified:true},
+    ],
+    waitlist:[
+      {id:id(), name:'Pedro Sanz',   phone:'34666666666', service:'Limpieza dental', note:'Flexible mañanas'},
+      {id:id(), name:'Elena Díaz',   phone:'34677777777', service:'Revisión',        note:'Solo tardes'},
+    ],
+    // registro de eventos para analítica (no-show, recuperaciones)
+    log:[
+      {t:Date.now()-86400000*2, type:'noshow',    name:'Raúl Vega', ticket:60},
+      {t:Date.now()-86400000*1, type:'recovered', name:'Marta Gil', ticket:60, from:'Hueco de Raúl Vega'},
+    ],
+  };
+}
+function id(){return Math.random().toString(36).slice(2,10);}
+
+/* ---- Persistencia -------------------------------------------------------- */
+let db;
+function load(){
+  try{ db=JSON.parse(localStorage.getItem(KEY)); }catch(e){ db=null; }
+  if(!db) db=seed();
+  // reset contador mensual
+  if(db.usage.month!==curMonth()){ db.usage={month:curMonth(),count:0}; }
+  // hook nube opcional (no rompe la demo si no existe)
+  if(window.CitaSeguraCloud && db._cloudPulled!==true){ /* la capa cloud puede hidratar db */ }
+  save();
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(db)); }
+function isPro(){ return db.plan!=='free'; }
+function isBiz(){ return db.plan==='business'; }
+
+/* ---- Helpers de negocio -------------------------------------------------- */
+const SECTORS={dental:'Clínica dental',fisio:'Fisioterapia',estetica:'Estética',asesoria:'Asesoría',otro:'Negocio'};
+function fmtDay(iso){
+  const d=new Date(iso), t=new Date(todayISO()), tm=new Date(todayISO(1));
+  if(iso.slice(0,10)===t.toISOString().slice(0,10)) return 'Hoy';
+  if(iso.slice(0,10)===tm.toISOString().slice(0,10)) return 'Mañana';
+  return d.toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+}
+function fmtHour(iso){ return iso.slice(11,16); }
+function initials(n){ return n.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+function money(n){ return n.toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+
+/* Mensaje de confirmación con botones (enlaces wa.me que el cliente responde) */
+function confirmMsg(a){
+  const b=db.settings.business;
+  return `Hola ${a.name}, te recordamos tu cita en ${b} el ${fmtDay(a.when)} a las ${fmtHour(a.when)} (${a.service}).\n\n`+
+    `Responde:\n✅ SÍ para confirmar\n❌ NO si no puedes venir (liberaremos el hueco)`+
+    (db.settings.depositOn?`\n\n💳 Para asegurar tu cita puedes dejar una señal de ${Math.round(db.settings.ticket*db.settings.depositPct/100)}€: ${db.settings.depositUrl}`:'');
+}
+function waUrl(phone,msg){ return `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`; }
+function smsUrl(phone,msg){ return `sms:${phone}?&body=${encodeURIComponent(msg)}`; }
+
+/* ---- Analítica ----------------------------------------------------------- */
+function stats(){
+  const log=db.log;
+  const noshows=log.filter(e=>e.type==='noshow');
+  const recov=log.filter(e=>e.type==='recovered');
+  // Tasa de no-show sobre citas CON DESENLACE (asistió + no-show + cancelada).
+  // Denominador estable: solo cuenta citas resueltas, nunca las pendientes/futuras.
+  const done   =db.appts.filter(a=>a.status==='done').length;
+  const cancel =db.appts.filter(a=>a.status==='cancel').length;
+  // los no-show salen del log (la cita pasa a 'noshow' y se registra el evento)
+  const noShowN=noshows.length;
+  const decided=done+cancel+noShowN;
+  const rate=decided? Math.round(noShowN/decided*100):0;
+  const lost=noshows.reduce((s,e)=>s+(e.ticket||db.settings.ticket),0);
+  const recovered=recov.reduce((s,e)=>s+(e.ticket||db.settings.ticket),0);
+  return {noshowCount:noShowN, recovCount:recov.length, rate, lost, recovered,
+    decided, done, cancel, confirmed:db.appts.filter(a=>a.status==='conf').length};
+}
+
+/* ============================================================================
+   NAVEGACIÓN
+   ============================================================================ */
+let view='today';
+const NAVITEMS=[
+  {k:'today',  label:'Citas de hoy', icon:'today'},
+  {k:'wait',   label:'Lista de espera', icon:'wait'},
+  {k:'stats',  label:'No-shows y dinero', icon:'stats'},
+  {k:'settings',label:'Ajustes', icon:'settings'},
+];
+function renderNav(){
+  const pendCount=db.appts.filter(a=>a.status==='pend').length;
+  const wlCount=db.waitlist.length;
+  document.getElementById('nav').innerHTML=NAVITEMS.map(n=>{
+    let badge='';
+    if(n.k==='today'&&pendCount) badge=`<span class="badge">${pendCount}</span>`;
+    if(n.k==='wait'&&wlCount) badge=`<span class="badge teal">${wlCount}</span>`;
+    return `<button class="${view===n.k?'active':''}" onclick="go('${n.k}')">${ic(n.icon)}<span>${n.label}</span>${badge}</button>`;
+  }).join('');
+  document.getElementById('mobnav').innerHTML=NAVITEMS.map(n=>
+    `<button class="${view===n.k?'active':''}" onclick="go('${n.k}')">${ic(n.icon)}<span>${n.label.split(' ')[0]}</span></button>`).join('');
+  // plan badge
+  const used=db.usage.count, pct=Math.min(100,used/FREE_LIMIT*100);
+  const pb=document.getElementById('planBadge');
+  if(isPro()){
+    pb.innerHTML=`<div class="lbl">Tu plan</div><div class="pname">${isBiz()?'Business':'Pro'} <span class="tag">${isBiz()?'BIZ':'PRO'}</span></div>
+      <small>Confirmaciones ilimitadas. Lista de espera automática activa.</small>
+      <button onclick="openPlans()">Gestionar plan</button>`;
+  }else{
+    pb.innerHTML=`<div class="lbl">Plan Free</div><div class="pname">${used}/${FREE_LIMIT} confirmaciones</div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <small>Este mes. Pásate a Pro para envíos ilimitados + waitlist automática.</small>
+      <button onclick="openPlans()">Mejorar a Pro · 19€</button>`;
+  }
+}
+function go(k){ view=k; render(); }
+
+/* ============================================================================
+   RENDER PRINCIPAL
+   ============================================================================ */
+function render(){
+  renderNav();
+  const titles={today:['Citas de hoy','Confirma y reduce ausencias'],wait:['Lista de espera','Rellena huecos automáticamente'],
+    stats:['No-shows y dinero','Tu agenda en números'],settings:['Ajustes','Negocio, mensajes y señas']};
+  document.getElementById('pgTitle').textContent=titles[view][0];
+  document.getElementById('pgSub').textContent=titles[view][1];
+  document.getElementById('topActions').innerHTML='';
+  if(view==='today'){
+    document.getElementById('topActions').innerHTML=
+      `<button class="btn ghost sm" onclick="importCSV()">${ic('import')} Importar</button>
+       <button class="btn sm" onclick="newAppt()">${ic('plus')} Nueva cita</button>`;
+    renderToday();
+  }
+  else if(view==='wait'){
+    document.getElementById('topActions').innerHTML=`<button class="btn sm" onclick="newWait()">${ic('plus')} Añadir</button>`;
+    renderWait();
+  }
+  else if(view==='stats') renderStats();
+  else if(view==='settings') renderSettings();
+}
+
+/* ---- VISTA HOY ----------------------------------------------------------- */
+function renderToday(){
+  const s=stats();
+  const grouped={};
+  const todayStr=todayISO();
+  // la agenda muestra hoy y futuro (las citas ya resueltas viven en el historial de stats)
+  const sorted=[...db.appts].filter(a=>a.when.slice(0,10)>=todayStr).sort((a,b)=>a.when.localeCompare(b.when));
+  sorted.forEach(a=>{ const d=fmtDay(a.when); (grouped[d]=grouped[d]||[]).push(a); });
+  const pend=db.appts.filter(a=>a.status==='pend');
+
+  let html=`<div class="kpis">
+    <div class="kpi"><div class="k">${ic('clock')} Pendientes de confirmar</div><div class="v">${pend.length}</div><div class="d">Envía el recordatorio</div></div>
+    <div class="kpi"><div class="k">${ic('check')} Confirmadas</div><div class="v" style="color:var(--green)">${s.confirmed}</div><div class="d good">No vendrán de sorpresa</div></div>
+    <div class="kpi"><div class="k">${ic('warn')} Tasa de no-show</div><div class="v" style="color:var(--red)">${s.rate}%</div><div class="d">${s.noshowCount} de ${s.decided} citas resueltas</div></div>
+    <div class="kpi accent"><div class="k">${ic('money')} Dinero recuperado</div><div class="v">${money(s.recovered)}€</div><div class="d">vía lista de espera</div></div>
+  </div>`;
+
+  // banner: confirmaciones masivas
+  if(pend.length){
+    html+=`<div class="banner"><div class="ic">${ic('warn')}</div>
+      <div class="tx"><b>${pend.length} citas sin confirmar</b><div>Envía el recordatorio con botón Confirmar/Cancelar por WhatsApp.</div></div>
+      <button class="btn" onclick="bulkConfirm()">${ic('send')} Enviar a todas</button></div>`;
+  }
+
+  // listado
+  html+=`<div class="card"><div class="head"><h2>${ic('today')} Agenda</h2><span class="hint">Pulsa el botón verde para abrir WhatsApp con el mensaje ya escrito</span></div><div class="body">`;
+  if(!sorted.length){
+    html+=emptyBox('today','No hay citas','Importa tu agenda o crea una cita para empezar.','Nueva cita','newAppt()');
+  }else{
+    Object.keys(grouped).forEach(day=>{
+      html+=`<div style="padding:8px 14px 4px;font-size:11.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">${day}</div>`;
+      grouped[day].forEach(a=> html+=apptRow(a));
+    });
+  }
+  html+=`</div></div>`;
+  document.getElementById('content').innerHTML=html;
+}
+function statusPill(st){
+  const m={pend:['pend','Sin confirmar'],sent:['sent','Recordatorio enviado'],conf:['conf','Confirmada'],
+    cancel:['cancel','Cancelada'],done:['done','Asistió'],noshow:['noshow','No-show']};
+  const [c,l]=m[st]||['pend',st]; return `<span class="pill ${c} dot">${l}</span>`;
+}
+/* Mini stepper: Enviado -> Confirmado -> Asistió (estado visual del flujo de la cita) */
+function apptStepper(st){
+  const order={pend:0,sent:1,conf:2,done:3,noshow:2,cancel:1};
+  const reached=order[st]??0;
+  const steps=[['Enviado',1],['Confirmado',2],['Asistió',3]];
+  const fail=(st==='noshow'||st==='cancel');
+  return `<div class="stepper${fail?' fail':''}">`+steps.map(([lab,lvl])=>{
+    const on=reached>=lvl;
+    return `<div class="step ${on?'on':''}"><i></i><span>${lab}</span></div>`;
+  }).join('')+`</div>`;
+}
+function apptRow(a){
+  let acts='';
+  if(a.status==='pend'){
+    acts+=`<button class="btn wa sm" onclick="sendConfirm('${a.id}')">${ic('wa')} Pedir confirmación</button>`;
+    acts+=`<button class="btn ghost sm" onclick="cancelAppt('${a.id}')">Cancela</button>`;
+  }else if(a.status==='sent'){
+    // mensaje ya enviado: simular la respuesta del cliente para ver el flujo completo
+    acts+=`<button class="btn sm" style="background:var(--green)" onclick="clientReply('${a.id}','yes')" title="Simular que el cliente responde SÍ">Cliente: SÍ</button>`;
+    acts+=`<button class="btn red sm" onclick="clientReply('${a.id}','no')" title="Simular que el cliente responde NO">Cliente: NO</button>`;
+    acts+=`<button class="btn ghost sm" onclick="sendConfirm('${a.id}')" title="Reenviar recordatorio">${ic('send')}</button>`;
+  }else if(a.status==='conf'){
+    acts+=`<button class="btn teal sm" onclick="markDone('${a.id}')">Asistió</button>`;
+    acts+=`<button class="btn red sm" onclick="markNoShow('${a.id}')">No-show</button>`;
+    acts+=`<button class="btn ghost sm" onclick="cancelAppt('${a.id}')">Cancela</button>`;
+  }else if(a.status==='cancel'||a.status==='noshow'){
+    acts+=`<button class="btn ghost sm" onclick="fillFromWait('${a.id}')">${ic('wait')} Rellenar hueco</button>`;
+  }
+  const showStep=(a.status!=='pend');
+  return `<div class="appt">
+    <div class="time"><div class="h">${fmtHour(a.when)}</div><div class="day">${fmtDay(a.when)}</div></div>
+    <div class="avatar">${initials(a.name)}</div>
+    <div class="who"><b>${a.name}</b> &nbsp;${statusPill(a.status)}<div class="svc">${a.service}</div><div class="ph">${a.phone}</div>${showStep?apptStepper(a.status):''}</div>
+    <div class="acts">${acts}</div></div>`;
+}
+/* Simular respuesta del cliente al mensaje de confirmación (cierra el bucle del flujo) */
+function clientReply(aid,ans){
+  const a=db.appts.find(x=>x.id===aid); if(!a) return;
+  if(ans==='yes'){ a.status='conf'; save(); render(); toast(a.name.split(' ')[0]+' ha confirmado ✅'); }
+  else{ a.status='cancel'; save(); render(); toast(a.name.split(' ')[0]+' no puede venir — hueco libre'); offerFill(a); }
+}
+
+/* ---- ACCIONES de cita ---------------------------------------------------- */
+function quota(){ // devuelve true si puede enviar; gestiona límite Free
+  if(isPro()) return true;
+  if(db.usage.count>=FREE_LIMIT){
+    toast('Límite Free alcanzado ('+FREE_LIMIT+'/mes)');
+    openPlans('Has gastado tus '+FREE_LIMIT+' confirmaciones gratis de este mes.');
+    return false;
+  }
+  return true;
+}
+function sendConfirm(aid){
+  const a=db.appts.find(x=>x.id===aid); if(!a) return;
+  if(!quota()) return;
+  window.open(waUrl(a.phone,confirmMsg(a)),'_blank');
+  a.status='sent'; a.notified=true;
+  db.usage.count++; save(); render();
+  toast('Recordatorio enviado a '+a.name.split(' ')[0]);
+}
+function bulkConfirm(){
+  const pend=db.appts.filter(a=>a.status==='pend');
+  if(!isPro()){
+    // En Free se permite, pero si supera límite avisa
+    if(db.usage.count+pend.length>FREE_LIMIT){
+      openPlans('El envío por lotes ilimitado es Pro. En Free puedes enviar de una en una hasta '+FREE_LIMIT+'/mes.');
+      return;
+    }
+  }
+  let sent=0;
+  pend.forEach((a,i)=>{
+    if(!isPro()&&db.usage.count>=FREE_LIMIT) return;
+    window.open(waUrl(a.phone,confirmMsg(a)),'_blank');
+    a.status='sent'; a.notified=true; db.usage.count++; sent++;
+  });
+  save(); render(); toast(sent+' recordatorios enviados');
+}
+function markConf(aid){ const a=db.appts.find(x=>x.id===aid); if(a){a.status='conf';save();render();toast(a.name.split(' ')[0]+' confirmada');} }
+function markDone(aid){ const a=db.appts.find(x=>x.id===aid); if(a){a.status='done';save();render();toast('Asistencia registrada');} }
+function markNoShow(aid){
+  const a=db.appts.find(x=>x.id===aid); if(!a) return;
+  a.status='noshow';
+  db.log.push({t:Date.now(),type:'noshow',name:a.name,ticket:db.settings.ticket});
+  save(); render();
+  // ofrecer rellenar el hueco desde la waitlist
+  offerFill(a);
+}
+function cancelAppt(aid){
+  const a=db.appts.find(x=>x.id===aid); if(!a) return;
+  a.status='cancel';
+  save(); render();
+  offerFill(a);
+}
+/* CORE: al liberarse un hueco, proponer el siguiente de la lista de espera */
+function offerFill(a){
+  if(!db.waitlist.length){ toast('Hueco libre. Lista de espera vacía.'); return; }
+  if(!isPro()){
+    // momento "ajá": en Free se permite PROBAR la waitlist una vez gratis
+    if(db.wlTrialUsed){
+      openPlans('Ya probaste la lista de espera automática. Es una función Pro: rellena los huecos cancelados por ti, ilimitado.');
+      return;
+    }
+    db.wlTrial=true; // marca que esta apertura es la prueba gratis
+  }
+  // candidato: mismo servicio si existe, si no el primero
+  const idx=Math.max(0, db.waitlist.findIndex(w=>w.service===a.service));
+  fillModal(a, idx);
+}
+function fillFromWait(aid){ const a=db.appts.find(x=>x.id===aid); if(a) offerFill(a); }
+
+function fillModal(a, idx){
+  const cand=db.waitlist[idx];
+  const msg=`Hola ${cand.name}, se ha quedado libre un hueco en ${db.settings.business} el ${fmtDay(a.when)} a las ${fmtHour(a.when)} (${a.service}). ¿Lo quieres? Responde SÍ y te lo reservo. 😊`;
+  const trialNote=(!isPro()&&db.wlTrial)?`<div class="banner" style="margin-bottom:14px"><div class="ic">${ic('flame')}</div><div class="tx"><b>Prueba gratis de la lista de espera</b><div>Esta es tu prueba única en Free. En Pro es automática e ilimitada.</div></div></div>`:'';
+  openModal(`<div class="mhead"><h3>Rellenar hueco libre</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="mbody">${trialNote}
+      <div class="banner teal" style="margin-bottom:16px"><div class="ic">${ic('flame')}</div><div class="tx">
+        <b>Hueco: ${fmtDay(a.when)} ${fmtHour(a.when)} · ${a.service}</b>
+        <div>Ofrécelo al siguiente de la lista de espera para no perder el ingreso (${db.settings.ticket}€).</div></div></div>
+      <label>Candidato de la lista de espera</label>
+      <select id="candSel">${db.waitlist.map((w,i)=>`<option value="${i}" ${i===idx?'selected':''}>${w.name} · ${w.service} · ${w.note||''}</option>`).join('')}</select>
+      <label>Mensaje (se abrirá WhatsApp con esto escrito)</label>
+      <textarea id="fillMsg" style="min-height:96px">${msg}</textarea>
+    </div>
+    <div class="mfoot">
+      <button class="btn ghost" onclick="closeModal()">Ahora no</button>
+      <button class="btn wa" onclick="doFill('${a.id}')">${ic('wa')} Ofrecer y reservar</button>
+    </div>`);
+}
+function doFill(aid){
+  const a=db.appts.find(x=>x.id===aid);
+  const i=+document.getElementById('candSel').value;
+  const cand=db.waitlist[i];
+  const msg=document.getElementById('fillMsg').value;
+  window.open(waUrl(cand.phone,msg),'_blank');
+  // crear nueva cita confirmada en el hueco y sacar al candidato de la waitlist
+  db.appts.push({id:id(),name:cand.name,phone:cand.phone,service:a.service,when:a.when,status:'sent',notified:true,fromWaitlist:true});
+  db.waitlist.splice(i,1);
+  db.log.push({t:Date.now(),type:'recovered',name:cand.name,ticket:db.settings.ticket,from:'Hueco de '+a.name});
+  if(isPro()) db.usage.count++;
+  // si era la prueba gratis de Free, consumirla y empujar a Pro tras ver el resultado
+  let wasTrial=false;
+  if(!isPro()&&db.wlTrial){ db.wlTrialUsed=true; db.wlTrial=false; wasTrial=true; }
+  save(); closeModal(); render();
+  toast('Hueco ofrecido a '+cand.name.split(' ')[0]+'. +'+db.settings.ticket+'€ recuperados');
+  if(wasTrial){ setTimeout(()=>openPlans('¿Has visto? La lista de espera te acaba de recuperar '+db.settings.ticket+'€. En Pro lo hace por ti cada vez, sin límite.'),900); }
+}
+
+/* ---- VISTA LISTA DE ESPERA ----------------------------------------------- */
+function renderWait(){
+  let html='';
+  html+=`<div class="banner teal"><div class="ic">${ic('flame')}</div><div class="tx">
+    <b>La lista de espera es tu red de seguridad</b>
+    <div>Cuando una cita se cancela o hay un no-show, CitaSegura te propone al siguiente cliente de esta lista para no perder el hueco.</div></div></div>`;
+  html+=`<div class="card"><div class="head"><h2>${ic('wait')} Clientes esperando hueco</h2><span class="hint">${db.waitlist.length} en lista</span></div><div class="body">`;
+  if(!db.waitlist.length){
+    html+=emptyBox('wait','Lista de espera vacía','Añade clientes que quieran adelantar su cita. Los usaremos para rellenar huecos.','Añadir cliente','newWait()');
+  }else{
+    db.waitlist.forEach((w,i)=>{
+      html+=`<div class="wl"><div class="pos">${i+1}</div>
+        <div class="who"><b>${w.name}</b> · <span style="color:var(--muted)">${w.service}</span><div>${w.note||'Sin preferencia'} · ${w.phone}</div></div>
+        <div class="acts"><button class="btn ghost sm" onclick="delWait('${w.id}')">Quitar</button></div></div>`;
+    });
+  }
+  html+=`</div></div>`;
+  document.getElementById('content').innerHTML=html;
+}
+function delWait(wid){ db.waitlist=db.waitlist.filter(w=>w.id!==wid); save(); render(); }
+
+/* ---- VISTA STATS --------------------------------------------------------- */
+function renderStats(){
+  const s=stats();
+  const net=s.recovered-0;
+  let html=`<div class="kpis">
+    <div class="kpi"><div class="k">${ic('warn')} No-shows este periodo</div><div class="v" style="color:var(--red)">${s.noshowCount}</div><div class="d bad">${money(s.lost)}€ en riesgo</div></div>
+    <div class="kpi"><div class="k">${ic('check')} Tasa de no-show</div><div class="v">${s.rate}%</div><div class="d">sobre ${s.decided} citas resueltas · ${s.rate>15?'Alta — actúa':'Bajo control'}</div></div>
+    <div class="kpi"><div class="k">${ic('wait')} Huecos recuperados</div><div class="v" style="color:var(--teal)">${s.recovCount}</div><div class="d">vía lista de espera</div></div>
+    <div class="kpi accent"><div class="k">${ic('money')} Dinero recuperado</div><div class="v">${money(s.recovered)}€</div><div class="d">que habrías perdido</div></div>
+  </div>`;
+
+  if(!isPro()){
+    html+=`<div class="banner"><div class="ic">${ic('stats')}</div><div class="tx">
+      <b>El panel detallado es Pro</b><div>Evolución mensual, ranking de no-shows reincidentes y exportación.</div></div>
+      <button class="btn" onclick="openPlans()">Ver Pro</button></div>`;
+  }
+
+  // ROI box
+  const monthlyNoshow=s.noshowCount||4;
+  const potentialLoss=monthlyNoshow*db.settings.ticket;
+  html+=`<div class="card"><div class="head"><h2>${ic('money')} Tu retorno con CitaSegura</h2></div><div class="body" style="padding:18px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div style="background:var(--redbg);border-radius:12px;padding:16px"><div style="font-size:12px;color:var(--red);font-weight:700">SIN actuar</div>
+        <div style="font-size:26px;font-weight:800;margin-top:4px">${money(potentialLoss)}€/mes</div>
+        <div style="font-size:12.5px;color:var(--ink2);margin-top:3px">${monthlyNoshow} no-shows × ${db.settings.ticket}€ ticket medio</div></div>
+      <div style="background:var(--greenbg);border-radius:12px;padding:16px"><div style="font-size:12px;color:var(--green);font-weight:700">CON CitaSegura</div>
+        <div style="font-size:26px;font-weight:800;margin-top:4px">+${money(Math.round(potentialLoss*0.6))}€/mes</div>
+        <div style="font-size:12.5px;color:var(--ink2);margin-top:3px">Recuperando ~60% con confirmación + waitlist</div></div>
+    </div>
+    <div style="text-align:center;margin-top:16px;font-size:13.5px;color:var(--ink2)">Pro cuesta <b>19€/mes</b>. Recuperar <b>una sola cita</b> de ${db.settings.ticket}€ ya lo paga.</div>
+  </div></div>`;
+
+  // historial
+  html+=`<div class="card"><div class="head"><h2>${ic('clock')} Historial de eventos</h2></div><div class="body" style="padding:0">
+    <table><thead><tr><th>Fecha</th><th>Evento</th><th>Cliente</th><th style="text-align:right">Importe</th></tr></thead><tbody>`;
+  const log=[...db.log].sort((a,b)=>b.t-a.t);
+  if(!log.length){ html+=`<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px">Sin eventos todavía</td></tr>`; }
+  log.forEach(e=>{
+    const d=new Date(e.t).toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+    const tag=e.type==='noshow'?`<span class="pill noshow dot">No-show</span>`:`<span class="pill done dot">Recuperado</span>`;
+    const amt=e.type==='noshow'?`<span style="color:var(--red)">-${e.ticket}€</span>`:`<span style="color:var(--green)">+${e.ticket}€</span>`;
+    html+=`<tr><td>${d}</td><td>${tag}${e.from?` <span style="color:var(--muted);font-size:12px">· ${e.from}</span>`:''}</td><td>${e.name}</td><td style="text-align:right;font-weight:700">${amt}</td></tr>`;
+  });
+  html+=`</tbody></table></div></div>`;
+  document.getElementById('content').innerHTML=html;
+}
+
+/* ---- VISTA AJUSTES ------------------------------------------------------- */
+function renderSettings(){
+  const st=db.settings;
+  let html=`<div class="card"><div class="head"><h2>${ic('settings')} Tu negocio</h2></div><div class="mbody" style="padding:20px">
+    <label>Nombre del negocio</label><input type="text" id="setBiz" value="${st.business}">
+    <div class="row2"><div><label>Sector</label><select id="setSector">${Object.entries(SECTORS).map(([k,v])=>`<option value="${k}" ${st.sector===k?'selected':''}>${v}</option>`).join('')}</select></div>
+      <div><label>Ticket medio (€)</label><input type="number" id="setTicket" value="${st.ticket}"><div class="help">Valor medio de una cita. Se usa para calcular el dinero perdido/recuperado.</div></div></div>
+    <button class="btn" style="margin-top:18px" onclick="saveSettings()">Guardar</button>
+  </div></div>`;
+
+  // señas (Business)
+  html+=`<div class="card"><div class="head"><h2>${ic('money')} Señas anti no-show ${isBiz()?'':'<span class="pill" style="background:var(--primarybg);color:var(--primary)">Business</span>'}</h2></div><div class="mbody" style="padding:20px">
+    <p style="font-size:13.5px;color:var(--ink2);margin-bottom:14px">Pide una señal/depósito al confirmar. Quien paga, casi nunca falta. Se añade un link de pago al mensaje de confirmación.</p>
+    <div class="seg" style="max-width:240px"><button class="${st.depositOn?'on':''}" onclick="toggleDeposit(true)" ${isBiz()?'':'disabled'}>Activado</button><button class="${!st.depositOn?'on':''}" onclick="toggleDeposit(false)">Desactivado</button></div>
+    <div class="row2" style="margin-top:14px"><div><label>% de señal</label><input type="number" id="setPct" value="${st.depositPct}" ${isBiz()?'':'disabled'}></div>
+      <div><label>Link de pago (Stripe)</label><input type="text" id="setUrl" value="${st.depositUrl}" ${isBiz()?'':'disabled'}><div class="help">Pega aquí tu Stripe Payment Link.</div></div></div>
+    ${isBiz()?`<button class="btn" style="margin-top:16px" onclick="saveDeposit()">Guardar señas</button>`:`<button class="btn ghost" style="margin-top:16px" onclick="openPlans()">Desbloquear con Business</button>`}
+  </div></div>`;
+
+  // vista previa del mensaje
+  const sample=db.appts[0]||{name:'María López',service:'Limpieza',when:at(0,'10:00'),phone:'34600'};
+  html+=`<div class="card"><div class="head"><h2>${ic('wa')} Mensaje de confirmación</h2><span class="hint">Así lo recibe el cliente</span></div><div class="mbody" style="padding:20px">
+    <div style="background:#dcf8c6;border-radius:12px;padding:14px 16px;font-size:13.5px;white-space:pre-wrap;color:#0b2e13;max-width:420px;border:1px solid #c3ecae">${confirmMsg(sample)}</div>
+  </div></div>`;
+
+  // datos / reset
+  html+=`<div class="card"><div class="head"><h2>${ic('user')} Datos y demo</h2></div><div class="mbody" style="padding:20px">
+    <p style="font-size:13.5px;color:var(--ink2);margin-bottom:12px">Todo se guarda en este navegador (localStorage). Con backend, se sincroniza en la nube.</p>
+    <button class="btn ghost" onclick="resetDemo()">Reiniciar datos de demo</button>
+  </div></div>`;
+  document.getElementById('content').innerHTML=html;
+}
+function saveSettings(){ db.settings.business=val('setBiz'); db.settings.sector=val('setSector'); db.settings.ticket=+val('setTicket')||60; save(); toast('Guardado'); }
+function toggleDeposit(on){ if(on&&!isBiz()){openPlans('Las señas anti no-show son del plan Business.');return;} db.settings.depositOn=on; save(); render(); }
+function saveDeposit(){ db.settings.depositPct=+val('setPct')||30; db.settings.depositUrl=val('setUrl'); save(); toast('Señas guardadas'); }
+function resetDemo(){ if(confirm('¿Reiniciar todos los datos de demo?')){ localStorage.removeItem(KEY); load(); db.onboarded=true; save(); render(); } }
+function val(id){ return document.getElementById(id).value; }
+
+/* ---- MODALES de creación ------------------------------------------------- */
+function newAppt(){
+  openModal(`<div class="mhead"><h3>Nueva cita</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="mbody">
+      <label>Cliente</label><input type="text" id="apN" placeholder="Nombre y apellidos">
+      <label>Teléfono (con prefijo, ej. 346...)</label><input type="tel" id="apP" placeholder="34600000000">
+      <label>Servicio</label><input type="text" id="apS" placeholder="Ej. Limpieza dental">
+      <div class="row2"><div><label>Día</label><input type="date" id="apD" value="${todayISO()}"></div>
+        <div><label>Hora</label><input type="time" id="apT" value="10:00"></div></div>
+    </div>
+    <div class="mfoot"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn" onclick="saveAppt()">Crear cita</button></div>`);
+}
+function saveAppt(){
+  const n=val('apN').trim(); if(!n){toast('Pon el nombre');return;}
+  db.appts.push({id:id(),name:n,phone:val('apP').trim(),service:val('apS').trim()||'Cita',when:val('apD')+'T'+val('apT')+':00',status:'pend',notified:false});
+  save(); closeModal(); render(); toast('Cita creada');
+}
+function newWait(){
+  openModal(`<div class="mhead"><h3>Añadir a lista de espera</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="mbody">
+      <label>Cliente</label><input type="text" id="wN" placeholder="Nombre">
+      <label>Teléfono</label><input type="tel" id="wP" placeholder="34600000000">
+      <label>Servicio que quiere</label><input type="text" id="wS" placeholder="Ej. Revisión">
+      <label>Preferencia (opcional)</label><input type="text" id="wNote" placeholder="Ej. solo tardes, flexible...">
+    </div>
+    <div class="mfoot"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn teal" onclick="saveWait()">Añadir</button></div>`);
+}
+function saveWait(){
+  const n=val('wN').trim(); if(!n){toast('Pon el nombre');return;}
+  db.waitlist.push({id:id(),name:n,phone:val('wP').trim(),service:val('wS').trim()||'Cualquiera',note:val('wNote').trim()});
+  save(); closeModal(); render(); toast('Añadido a la lista de espera');
+}
+function importCSV(){
+  openModal(`<div class="mhead"><h3>Importar agenda (CSV)</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="mbody">
+      <p style="font-size:13.5px;color:var(--ink2);margin-bottom:10px">Pega filas: <code>nombre,telefono,servicio,fecha(YYYY-MM-DD),hora(HH:MM)</code></p>
+      <textarea id="csv" style="min-height:130px;font-family:monospace;font-size:12.5px" placeholder="María López,34600111222,Limpieza,${todayISO()},10:00&#10;Juan Gil,34600333444,Revisión,${todayISO(1)},12:00"></textarea>
+    </div>
+    <div class="mfoot"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn" onclick="doImport()">Importar</button></div>`);
+}
+function doImport(){
+  const lines=val('csv').split('\n').map(l=>l.trim()).filter(Boolean);
+  let n=0;
+  lines.forEach(l=>{
+    const [name,phone,service,date,time]=l.split(',').map(s=>s.trim());
+    if(!name) return;
+    db.appts.push({id:id(),name,phone:phone||'',service:service||'Cita',when:(date||todayISO())+'T'+(time||'10:00')+':00',status:'pend',notified:false});
+    n++;
+  });
+  save(); closeModal(); render(); toast(n+' citas importadas');
+}
+
+/* ---- PAYWALL ------------------------------------------------------------- */
+function openPlans(reason){
+  const r=reason?`<div class="banner" style="margin:0 0 18px"><div class="ic">${ic('flame')}</div><div class="tx"><b>Desbloquea más</b><div>${reason}</div></div></div>`:'';
+  openModal(`<div class="mhead"><h3>Planes de CitaSegura</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="mbody">${r}
+    <div class="plans">
+      <div class="plan"><h4>Free</h4><div class="price">0€</div>
+        <ul>
+          <li>${ic('check')} ${FREE_LIMIT} confirmaciones/mes</li>
+          <li>${ic('check')} WhatsApp/SMS pre-escrito</li>
+          <li class="off">${ic('check')} Lista de espera automática</li>
+          <li class="off">${ic('check')} Panel de no-shows</li>
+          <li class="off">${ic('check')} Señas anti no-show</li>
+        </ul>
+        <button class="btn ghost" onclick="setPlan('free')" ${db.plan==='free'?'disabled':''}>${db.plan==='free'?'Plan actual':'Bajar a Free'}</button></div>
+      <div class="plan pop"><div class="ribbon">Recomendado</div><h4>Pro</h4><div class="price">19€<small>/mes</small></div>
+        <ul>
+          <li>${ic('check')} Confirmaciones <b>ilimitadas</b></li>
+          <li>${ic('check')} <b>Lista de espera automática</b></li>
+          <li>${ic('check')} Panel de no-shows y dinero</li>
+          <li>${ic('check')} Envío por lotes</li>
+          <li class="off">${ic('check')} Varios profesionales/sedes</li>
+        </ul>
+        <button class="btn" onclick="setPlan('pro')" ${db.plan==='pro'?'disabled':''}>${db.plan==='pro'?'Plan actual':'Empezar Pro'}</button></div>
+      <div class="plan"><h4>Business</h4><div class="price">39€<small>/mes</small></div>
+        <ul>
+          <li>${ic('check')} Todo lo de Pro</li>
+          <li>${ic('check')} <b>Varios profesionales/sedes</b></li>
+          <li>${ic('check')} <b>Señas con pago</b> (Stripe)</li>
+          <li>${ic('check')} Soporte prioritario</li>
+        </ul>
+        <button class="btn ghost" onclick="setPlan('business')" ${db.plan==='business'?'disabled':''}>${db.plan==='business'?'Plan actual':'Elegir Business'}</button></div>
+    </div>
+    <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:16px">Checkout simulado (demo). El backend real usa Stripe Checkout.</p>
+    </div>`,'wide');
+}
+function setPlan(p){
+  // checkout fake
+  if(p!=='free'){
+    closeModal();
+    setTimeout(()=>{
+      openModal(`<div class="mhead"><h3>Pago (simulado)</h3><button class="x" onclick="closeModal()">×</button></div>
+        <div class="mbody">
+          <div style="text-align:center;padding:6px 0 14px">
+            <div style="font-size:13px;color:var(--muted)">Plan ${p==='pro'?'Pro · 19€/mes':'Business · 39€/mes'}</div>
+          </div>
+          <label>Número de tarjeta</label><input type="text" value="4242 4242 4242 4242" id="cc">
+          <div class="row2"><div><label>Caducidad</label><input type="text" value="12/28"></div><div><label>CVC</label><input type="text" value="123"></div></div>
+          <button class="btn" style="width:100%;margin-top:18px;justify-content:center" onclick="confirmPay('${p}')">Pagar ${p==='pro'?'19':'39'}€/mes</button>
+          <p style="text-align:center;font-size:11.5px;color:var(--muted);margin-top:10px">Simulación. No se cobra nada.</p>
+        </div>`);
+    },150);
+    return;
+  }
+  db.plan='free'; save(); closeModal(); render(); toast('Plan actualizado');
+}
+function confirmPay(p){ db.plan=p; save(); closeModal(); render(); toast('¡Bienvenido a '+(p==='pro'?'Pro':'Business')+'! 🎉'); }
+
+/* ---- MODAL infra --------------------------------------------------------- */
+function openModal(html,cls=''){ const box=document.getElementById('modalBox'); box.className='modal '+cls; box.innerHTML=html; document.getElementById('modalBg').classList.add('show'); }
+function closeModal(){ document.getElementById('modalBg').classList.remove('show'); }
+document.getElementById('modalBg').addEventListener('click',e=>{ if(e.target.id==='modalBg') closeModal(); });
+
+/* ---- TOAST --------------------------------------------------------------- */
+let toastT;
+function toast(msg){ const t=document.getElementById('toast'); t.innerHTML=ic('check')+'<span>'+msg+'</span>'; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600); }
+
+function emptyBox(icon,title,sub,btn,act){
+  return `<div class="empty"><div class="ico">${ic(icon)}</div><b>${title}</b><div style="margin-top:4px">${sub}</div>${btn?`<button class="btn" onclick="${act}">${ic('plus')} ${btn}</button>`:''}</div>`;
+}
+
+/* ---- ONBOARDING ---------------------------------------------------------- */
+function onboarding(){
+  const o=document.createElement('div'); o.className='ob-bg'; o.id='obBg';
+  o.innerHTML=`<div class="ob">
+    <div class="logo"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></div>
+    <h2>Que no te dejen plantado</h2>
+    <p class="lead">CitaSegura confirma tus citas y rellena los huecos cancelados con tu lista de espera. Menos ausencias, agenda llena.</p>
+    <div class="feat">${ic('wa')} Confirmación por WhatsApp con botón Sí/No</div>
+    <div class="feat">${ic('wait')} Lista de espera que rellena los huecos automáticamente</div>
+    <div class="feat">${ic('money')} Mide tu tasa de no-show y el dinero recuperado</div>
+    <label style="margin-top:20px">¿Cómo se llama tu negocio?</label>
+    <input type="text" id="obBiz" placeholder="Ej. Clínica Dental Sonríe" value="">
+    <label>Ticket medio de una cita (€)</label>
+    <input type="number" id="obTicket" value="60">
+    <button class="btn" style="width:100%;margin-top:20px;justify-content:center;font-size:15px;padding:13px" onclick="finishOb()">Entrar al panel</button>
+  </div>`;
+  document.body.appendChild(o);
+}
+function finishOb(){
+  const b=document.getElementById('obBiz').value.trim();
+  const t=+document.getElementById('obTicket').value||60;
+  if(b) db.settings.business=b;
+  db.settings.ticket=t; db.onboarded=true; save();
+  document.getElementById('obBg').remove();
+  render();
+}
+
+/* ---- INIT ---------------------------------------------------------------- */
+load();
+if(!db.onboarded) onboarding();
+render();
+</script>
+</body>
+</html>
